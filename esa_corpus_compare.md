@@ -65,10 +65,14 @@ change, I plot the relative change of 50 words most common across both years:
 
 ![](figure/big.png) 
 
-This is somewhat less clear. If one squints, one could argue tha there are more
-words associated with species interactions ane environmental change, and managment
-at the top, and more words associated with ecosystems (and forests) at the bottom.
 
-That's just a quick first pass.  Suggestions welcome for further analyses. Check out [this repository on github](https://github.com/noamross/esaprog) for the
-code that generated these plots and how to grab the ESA program text for your
-own use.  See you in a few weeks!
+This is somewhat less clear. If one squints, one could argue that there
+are more words associated with species interactions, environmental
+change, and management at the top, and more words associated with
+forests at the bottom.  Words in the middle ("ecology", "community") are consistently popular across both years.  Finally, perhaps significance is falling out of fashion?
+
+That's just a quick first pass. I haven't yet thought much about how one models these data to understand effect sizes and significance. I welcome suggestions for further
+analyses and better ways to plot/organize this data. Check out [this repository on
+github](https://github.com/noamross/esaprog) for the code that generated
+these plots and how to grab the ESA program text for your own use. See
+you in a few weeks!
