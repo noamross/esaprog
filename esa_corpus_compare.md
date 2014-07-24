@@ -29,7 +29,7 @@ are probably on top because ecologists usually refer to animals by various
 sub-groups.  The rest are fairly ho-hum: ecology and science-y words.
 
 A much more interesting question is, how do the topics at ESA change from year
-to year? Below I show the terms that changed whose use in ESA abstracts changed 
+to year? Below I show the terms whose use in ESA abstracts changed 
 the most between 2013 to 2014:
 
 ![](figure/mung.png) 
@@ -59,9 +59,9 @@ words - "use", "conserve", "risk" - are always popular but more prevelant this y
 as are geographic terms like "island" and "landscape".
 
 It's possible that these changes are due to changes in what's popular in ecology,
-but it is likely that many of the concepts captured in these terms - ecosystem,
-community, and landscape ecology - are influenced by region, as well.  After all,
-an ecosystem perspective is likely to dominate in the midwest, where an abundance
+but it is also likely that many of the concepts captured in these terms - ecosystem,
+community, and landscape ecology - are influenced by region.  After all,
+an ecosystem perspective is likely to dominate in the Midwest, where an abundance
 of lakes have been important in the research of freshwater nutrient cycling,
 and a landscape perspective may be important in California, which has such
 heterogeneity of habitats.  This is a pretty good argument for keeping ESA's
