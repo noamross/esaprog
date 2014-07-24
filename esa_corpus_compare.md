@@ -6,9 +6,9 @@
 
 [ESA](http://esa.org/am/) is just around the corner, and many of us are gearing
 up and trying to figure out a [schedule](http://eco.confex.com/eco/2014/schedule/index.cgi)
-to cover all the topics that interest.  ESA is a big conference and there's far
-too much for any one person to see.  In the end, everyone experiences a [different part of the elephant](http://en.wikipedia.org/wiki/Blind_men_and_an_elephant).  I thought it would be interesting to take a look at the big picture, though,
-and examine the ESA program as a  *whole* to see what could be learned.  This
+to cover all the talks and people we can pack in.  ESA is a big conference and there's far
+too much for any one person to see.  In the end, everyone experiences a [different part of the elephant](http://en.wikipedia.org/wiki/Blind_men_and_an_elephant). However, I thought it would be interesting to take a look at the big picture,
+and examine the ESA program as a  *whole* to see what could be learned from it.  This
 is the first of (maybe) several posts where I use some basic text-mining tools
 to explore the content of the ESA program.
 
@@ -45,7 +45,7 @@ like *pollinator*[^1], *phenology*, and *network* - those associated with
 the study of species interactions.
 
 [^1]: "pollinia" is a stand-in for all pollination-related words here, as I
-applied [stemming](http://en.wikipedia.org/wiki/Stemming) to the txt.
+applied [stemming](http://en.wikipedia.org/wiki/Stemming) to the text.
 
 These are the biggest *changes*, but have the *big themes* changed?  The plot
 below is similar, but instead of plotting the words with the greatest absolute
@@ -59,15 +59,15 @@ words - "use", "conserve", "risk" - are always popular but more prevelant this y
 as are geographic terms like "island" and "landscape".
 
 It's possible that these changes are due to changes in what's popular in ecology,
-but it is likely that much of the concepts captured in these terms - ecosystem,
-community, and landscape ecology - are influenced by region, as well.  After all
+but it is likely that many of the concepts captured in these terms - ecosystem,
+community, and landscape ecology - are influenced by region, as well.  After all,
 an ecosystem perspective is likely to dominate in the midwest, where an abundance
 of lakes have been important in the research of freshwater nutrient cycling,
 and a landscape perspective may be important in California, which has such
 heterogeneity of habitats.  This is a pretty good argument for keeping ESA's
-location moving year-to-year, so that no regional perspective dominates every
+location moving, so that no regional perspective dominates every
 year.
 
-That's just a quick first pass.  Check out [this repository on github]() for the
+That's just a quick first pass.  Check out [this repository on github](https://github.com/noamross/esaprog) for the
 code that generated these plots and how to grab the ESA program text for your
 own use.  See you in a few weeks!

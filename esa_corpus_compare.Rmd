@@ -192,6 +192,6 @@ heterogeneity of habitats.  This is a pretty good argument for keeping ESA's
 location moving, so that no regional perspective dominates every
 year.
 
-That's just a quick first pass.  Check out [this repository on github]() for the
+That's just a quick first pass.  Check out [this repository on github](https://github.com/noamross/esaprog) for the
 code that generated these plots and how to grab the ESA program text for your
 own use.  See you in a few weeks!
