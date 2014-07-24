@@ -5,7 +5,7 @@ This repository contains some scripts of analyses of the program uf the
 
 The scripts assume you have the content of the program in the directory. I haven't
 included it here for both copyright purposes and to limit the size of the repo. After cloning the repo, navigate into it and run these commands at the command line to get
-the program files from the ESA website.:
+the program files from the ESA website:
 
 ```
 wget -r http://eco.confex.com/eco/2013/webprogram/
