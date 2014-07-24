@@ -1,0 +1,197 @@
+% What shall we talk about at ESA?
+% Noam Ross
+% 14-07-17 20:49:15
+
+`r knitr::opts_chunk$set(cache=TRUE, warning=FALSE, fig.cap="")`
+
+[ESA](http://esa.org/am/) is just around the corner, and many of us are gearing
+up and trying to figure out a [schedule](http://eco.confex.com/eco/2014/schedule/index.cgi)
+to cover all the talks and people we can pack in.  ESA is a big conference and there's far
+too much for any one person to see.  In the end, everyone experiences a [different part of the elephant](http://en.wikipedia.org/wiki/Blind_men_and_an_elephant). However, I thought it would be interesting to take a look at the big picture,
+and examine the ESA program as a  *whole* to see what could be learned from it.  This
+is the first of (maybe) several posts where I use some basic text-mining tools
+to explore the content of the ESA program.
+
+
+```{r setup, message=FALSE, warning=FALSE, echo=FALSE, results='hide'}
+require(XML)
+require(plyr)
+require(tm)
+require(dplyr)
+require(wordcloud)
+require(ggplot2)
+if(!require(noamtools)) {
+  install_github('noamross/noamtools')
+  library(noamtools)
+  }
+```
+
+First, what are the most common terms in the ESA program?
+
+```{r readfiles,  echo=FALSE, results='hide', cache=TRUE}
+# Write all the abstracts into a single text file per year
+ppath = "eco.confex.com/eco/2013/webprogram"
+paper_files = list.files(ppath, recursive=TRUE, pattern="Paper\\d+\\.html")
+
+cat("", file="corpus/esa2013.txt")
+a_ply(paper_files, 1, function(paper) {
+  paper_xml = htmlTreeParse(file.path(ppath, paper), useInternalNodes = TRUE, trim=TRUE)
+  ab = try(xmlValue(paper_xml[['//div[@class="abstract"]']]), silent = TRUE)
+  if(class(ab) != "try-error") {
+  ab = stringi::stri_replace_all_fixed(ab, "Background/Question/Methods", "")
+  ab = stringi::stri_replace_all_fixed(ab, "Results/Conclusions", "")
+  cat(ab, file="corpus/esa2013.txt", append=TRUE)
+  }
+}, .progress = "time")
+cat("\n", file="corpus/esa2013.txt", append=TRUE)
+
+ppath = "eco.confex.com/eco/2014/webprogram"
+paper_files = list.files(ppath, recursive=TRUE, pattern="Paper\\d+\\.html")
+
+cat("", file="corpus/esa2014.txt")
+a_ply(paper_files, 1, function(paper) {
+  paper_xml = htmlTreeParse(file.path(ppath, paper), useInternalNodes = TRUE, trim=TRUE)
+  ab = try(xmlValue(paper_xml[['//div[@class="abstract"]']]), silent = TRUE)
+  if(class(ab) != "try-error") {
+  ab = stringi::stri_replace_all_fixed(ab, "Background/Question/Methods", "")
+  ab = stringi::stri_replace_all_fixed(ab, "Results/Conclusions", "")
+  cat(ab, file="corpus/esa2014.txt", append=TRUE)
+  }
+}, .progress = "time")
+cat("\n", file="corpus/esa2014.txt", append=TRUE)
+```
+
+
+```{r loadcorpus, echo=FALSE, results='hide'}
+#Load and clean the corpus
+esa = Corpus(DirSource("corpus/")) %>%
+  tm_map(stripWhitespace) %>%
+  tm_map(tolower) %>%
+  tm_map(removeWords, stopwords("english")) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation, preserve_intra_word_dashes=TRUE)
+
+esa2 = esa %>% tm_map(stemDocument)
+
+tfa = TermDocumentMatrix(esa, list(bounds=list(local=c(8, Inf))))
+
+dict = Terms(tfa)[!(Terms(tfa) %in% c("special", "specialist", "specialists", "ecologic"))]
+esaComp = TermDocumentMatrix(esa2, list(bounds=list(local=c(20, Inf))))
+newTerms = stemCompletion(Terms(esaComp), dict, 'shortest')
+esaComp$dimnames$Terms = newTerms
+```
+
+```{r plot1, echo=FALSE, fig.width=5, fig.height=8, cache=FALSE}
+freq <- sort(slam::row_sums(esaComp), decreasing=TRUE)
+words <- names(freq) 
+wd = data.frame(words=factor(words[1:30], levels=words[30:1]), freq=freq[1:30])
+ggplot(wd, aes(x=words, y=freq, label=words)) +
+  geom_bar(stat='identity') +
+  geom_text(hjust = 1.05, col='white') +
+  coord_flip() +
+  theme_nr +
+  theme(
+       axis.title.y=element_blank(),
+        axis.ticks.y=element_blank(),
+       axis.text.y=element_blank(),
+        axis.title.x=element_text(size=18),
+        panel.grid=element_blank()) +
+  ylab('Number of Uses in ESA Program') + 
+  ggtitle('Top 30 Terms in ESA 2014 Abstracts')
+```
+
+Few surprises here.  "Species" would have been my guess for the top.  "Plants"
+are probably on top because ecologists usually refer to animals by various
+sub-groups.  The rest are fairly ho-hum: ecology and science-y words.
+
+A much more interesting question is, how do the topics at ESA change from year
+to year? Below I show the terms that changed whose use in ESA abstracts changed 
+the most between 2013 to 2014:
+
+```{r mung, echo=FALSE, fig.width=8, fig.height=11, cache=FALSE} 
+dat = as.data.frame(as.matrix(esaComp))
+colnames(dat) = c("esa13", "esa14")
+dat$term = rownames(dat)
+dat = dat %>% mutate(p13 = esa13/sum(esa13), p14=esa14/sum(esa14)) %>%
+  mutate(chg = (p14-p13)) %>%
+  mutate(pctchg = (p14-p13)/p13) %>% 
+  mutate(dir = factor(ifelse(chg > 0, 2014, 2013))) %>%     
+  arrange(-abs(chg))
+
+dat2 = head(dat, 50) %>% arrange(chg) %>% droplevels
+dat2$term = factor(dat2$term, levels=dat2$term[order(dat2$chg)])
+ggplot(dat2, aes(x=term, label=term, y=chg*1000, fill=dir, hjust=ifelse(dir==2014, -0.05, 1.05))) +
+  geom_bar(stat="identity", col="white", lwd=0.5, alpha=0.5) +
+  geom_text(col="black", y=0, size=5) +
+  coord_flip() +
+  scale_fill_manual(values=c("red", "darkgreen"), guide=FALSE) +
+#  scale_color_manual(values=c("red", "green"), guide=FALSE) +
+  theme_nr +
+  theme(panel.grid.major.y=element_blank(),
+        axis.title.x=element_text(size=18),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank()
+ #       panel.grid.major.x=element_line(colour="grey"),
+  #      panel.grid.minor.x=element_line(colour="grey")
+        ) +
+  ggtitle('50 terms with  greatest change in the ESA Program, 2013-2014') +
+  ylab('Change in frequency (occurrence per 1000 words)')
+```
+
+This paints a much more interesting picture.  The rise of California
+and the fall of Minnesota make sense given the change in the meeting's location.
+But we can see the influence of landscape on topics as well.  We see fewer
+words associated with freshwater ecosystems, prairies, and forests this year,
+and more associated with fire and other plant systems. Also, we see a difference
+in the *kinds* of ecology in the program. This year there are fewer words
+like *biomass* and *nutrient* - those common in ecosystem ecology - and more
+like *pollinator*[^1], *phenology*, and *network* - those associated with
+the study of species interactions.
+
+[^1]: "pollinia" is a stand-in for all pollination-related words here, as I
+applied [stemming](http://en.wikipedia.org/wiki/Stemming) to the text.
+
+These are the biggest *changes*, but have the *big themes* changed?  The plot
+below is similar, but instead of plotting the words with the greatest absolute
+change, I plot the relative change of 50 words most common across both years:
+
+```{r big, echo=FALSE, fig.width=8, fig.height=11, cache=FALSE}
+
+dat = dat %>% mutate(rank = order(-esa13 - esa14), r13 = order(-esa13), r14=order(-esa14))
+
+dat3 = dat %>% filter(rank <= 50) %>% droplevels %>% arrange(term)
+dat3$term = factor(dat3$term, levels=dat3$term[order(dat3$chg)])
+ggplot(dat3, aes(x=term, label=term, y=chg*1000, fill=dir, hjust=ifelse(dir==2014, -0.05, 1.05))) +
+  geom_bar(stat="identity", col="white", lwd=0.5, alpha=0.5) +
+  geom_text(col="black", y=0, size=5) +
+  coord_flip() +
+  scale_fill_manual(values=c("red", "darkgreen"), guide=FALSE) +
+#  scale_color_manual(values=c("red", "green"), guide=FALSE) +
+  theme_nr +
+  theme(panel.grid.major.y=element_blank(),
+        axis.title.x=element_text(size=18),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank()
+        ) +
+  ggtitle('Change in the 50 most common terms in the ESA Program, 2013-2014') +
+  ylab('Change in frequency (occurrence per 1000 words)')
+```
+
+Many of the patterns are the same here: "California" still comes out on top and
+"biomass" on bottom.  But a few other interesting things stand out.  Management-related
+words - "use", "conserve", "risk" - are always popular but more prevelant this year,
+as are geographic terms like "island" and "landscape".
+
+It's possible that these changes are due to changes in what's popular in ecology,
+but it is likely that many of the concepts captured in these terms - ecosystem,
+community, and landscape ecology - are influenced by region, as well.  After all,
+an ecosystem perspective is likely to dominate in the midwest, where an abundance
+of lakes have been important in the research of freshwater nutrient cycling,
+and a landscape perspective may be important in California, which has such
+heterogeneity of habitats.  This is a pretty good argument for keeping ESA's
+location moving, so that no regional perspective dominates every
+year.
+
+That's just a quick first pass.  Check out [this repository on github]() for the
+code that generated these plots and how to grab the ESA program text for your
+own use.  See you in a few weeks!
