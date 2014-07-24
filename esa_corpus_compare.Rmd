@@ -148,8 +148,20 @@ like *biomass* and *nutrient* - those common in ecosystem ecology - and more
 like *pollinator*[^1], *phenology*, and *network* - those associated with
 the study of species interactions.
 
+It's possible that these changes are due to changes in what's popular in ecology,
+but it is also likely that many of the concepts captured in these terms - ecosystem,
+community, and landscape ecology - are influenced by region.  After all,
+an ecosystem perspective is likely to dominate in the Midwest, where an abundance
+of lakes have been important in the research of freshwater nutrient cycling,
+and a landscape perspective may be important in California, which has such
+heterogeneity of habitats.  This is a pretty good argument for keeping ESA's
+location moving, so that no regional perspective dominates every
+year.
+
 [^1]: "pollinia" is a stand-in for all pollination-related words here, as I
 applied [stemming](http://en.wikipedia.org/wiki/Stemming) to the text.
+
+
 
 These are the biggest *changes*, but have the *big themes* changed?  The plot
 below is similar, but instead of plotting the words with the greatest absolute
@@ -157,7 +169,7 @@ change, I plot the relative change of 50 words most common across both years:
 
 ```{r big, echo=FALSE, fig.width=8, fig.height=11, cache=FALSE}
 
-dat = dat %>% mutate(rank = order(-esa13 - esa14), r13 = order(-esa13), r14=order(-esa14))
+dat = dat %>% mutate(rank = rank(-esa13 - esa14), r13 = rank(-esa13), r14=rank(-esa14))
 
 dat3 = dat %>% filter(rank <= 50) %>% droplevels %>% arrange(term)
 dat3$term = factor(dat3$term, levels=dat3$term[order(dat3$chg)])
@@ -177,21 +189,10 @@ ggplot(dat3, aes(x=term, label=term, y=chg*1000, fill=dir, hjust=ifelse(dir==201
   ylab('Change in frequency (occurrence per 1000 words)')
 ```
 
-Many of the patterns are the same here: "California" still comes out on top and
-"biomass" on bottom.  But a few other interesting things stand out.  Management-related
-words - "use", "conserve", "risk" - are always popular but more prevelant this year,
-as are geographic terms like "island" and "landscape".
+This is somewhat less clear. If one squints, one could argue tha there are more
+words associated with species interactions ane environmental change, and managment
+at the top, and more words associated with ecosystems (and forests) at the bottom.
 
-It's possible that these changes are due to changes in what's popular in ecology,
-but it is also likely that many of the concepts captured in these terms - ecosystem,
-community, and landscape ecology - are influenced by region.  After all,
-an ecosystem perspective is likely to dominate in the Midwest, where an abundance
-of lakes have been important in the research of freshwater nutrient cycling,
-and a landscape perspective may be important in California, which has such
-heterogeneity of habitats.  This is a pretty good argument for keeping ESA's
-location moving, so that no regional perspective dominates every
-year.
-
-That's just a quick first pass.  Check out [this repository on github](https://github.com/noamross/esaprog) for the
+That's just a quick first pass.  Suggestions welcome for further analyses. Check out [this repository on github](https://github.com/noamross/esaprog) for the
 code that generated these plots and how to grab the ESA program text for your
 own use.  See you in a few weeks!

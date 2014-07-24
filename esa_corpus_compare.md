@@ -44,20 +44,6 @@ like *biomass* and *nutrient* - those common in ecosystem ecology - and more
 like *pollinator*[^1], *phenology*, and *network* - those associated with
 the study of species interactions.
 
-[^1]: "pollinia" is a stand-in for all pollination-related words here, as I
-applied [stemming](http://en.wikipedia.org/wiki/Stemming) to the text.
-
-These are the biggest *changes*, but have the *big themes* changed?  The plot
-below is similar, but instead of plotting the words with the greatest absolute
-change, I plot the relative change of 50 words most common across both years:
-
-![](figure/big.png) 
-
-Many of the patterns are the same here: "California" still comes out on top and
-"biomass" on bottom.  But a few other interesting things stand out.  Management-related
-words - "use", "conserve", "risk" - are always popular but more prevelant this year,
-as are geographic terms like "island" and "landscape".
-
 It's possible that these changes are due to changes in what's popular in ecology,
 but it is also likely that many of the concepts captured in these terms - ecosystem,
 community, and landscape ecology - are influenced by region.  After all,
@@ -68,6 +54,21 @@ heterogeneity of habitats.  This is a pretty good argument for keeping ESA's
 location moving, so that no regional perspective dominates every
 year.
 
-That's just a quick first pass.  Check out [this repository on github](https://github.com/noamross/esaprog) for the
+[^1]: "pollinia" is a stand-in for all pollination-related words here, as I
+applied [stemming](http://en.wikipedia.org/wiki/Stemming) to the text.
+
+
+
+These are the biggest *changes*, but have the *big themes* changed?  The plot
+below is similar, but instead of plotting the words with the greatest absolute
+change, I plot the relative change of 50 words most common across both years:
+
+![](figure/big.png) 
+
+This is somewhat less clear. If one squints, one could argue tha there are more
+words associated with species interactions ane environmental change, and managment
+at the top, and more words associated with ecosystems (and forests) at the bottom.
+
+That's just a quick first pass.  Suggestions welcome for further analyses. Check out [this repository on github](https://github.com/noamross/esaprog) for the
 code that generated these plots and how to grab the ESA program text for your
 own use.  See you in a few weeks!
