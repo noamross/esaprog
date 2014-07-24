@@ -1,7 +1,7 @@
 # Messing around with the ESA Program
 
-This repository contains some scripts of analyses of the program up the
-2014 (and '13) [Ecological Society of America annual meeting](http://esa.org/am/program/)
+This repository contains some scripts of analyses of the program uf the
+2014 (and '13) [Ecological Society of America annual meeting](http://esa.org/am/program/).
 
 The scripts assume you have the content of the program in the directory. I haven't
 included it here for both copyright purposes and to limit the size of the repo. After cloning the repo, navigate into it and run these commands at the command line to get
