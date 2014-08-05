@@ -1,15 +1,15 @@
 % ESA 2014: Don't Know Much About History...
 % Noam Ross
-% 14-08-01 14:32:38
+% 14-08-05 08:14:11
 
-`r opts_chunk$set(cache=TRUE, warning=FALSE, message=FALSE)`
+`r library(knitr); opts_chunk$set(cache=TRUE, warning=FALSE, message=FALSE, echo=FALSE,
+fig.cap="")`
 
-After my [last post](http://www.noamross.net/blog/2014/7/24/esacorpuscompare.html) text-mining the [ESA Annual Meeting](http://esa.org/am/) abstract, [Nash Turley](http://www.nashturley.org/) [was interested](https://twitter.com/NashTurley/status/495272858038595587) in the presence of the term "natural history" in ESA abstracts. I decided to collect a little more data by including programs back to 2010, giving a five-year data set.  Thankfully the program back to 2010 remains in mostly the same format, so it's easy to pull the data for these additional years.
+After my [last post](http://www.noamross.net/blog/2014/7/24/esacorpuscompare.html) text-mining [ESA Annual Meeting](http://esa.org/am/) abstracts, [Nash Turley](http://www.nashturley.org/) [was interested](https://twitter.com/NashTurley/status/495272858038595587) in the presence of the term "natural history" in ESA abstracts. I decided to collect a little more data by including programs back to 2010, giving a five-year data set.  Thankfully the program back to 2010 remains in mostly the same format, so it's easy to pull the data for these additional years.
 
 Now, not all talks that include natural history concepts  will include the term "natural history"[^1]
-in their abstracts, but
-it's frequency may be an indicator of importance.  *Variation* in use of the term
-is definitely of interest.  
+in their abstracts, but it's frequency may be an indicator of importance, and  *variation* in use of the term
+is may yield some insights.  
 
 [^1]: Or rather, something close to "natural history".  I searched for the regular expression
 `natur\w+\s+hist`.
@@ -42,11 +42,10 @@ nh_abs = alply(paper_files, 1, function(paper) {
   } else {
     return(c(fields, title=title, year=year, abstract=abstract))
   }
-  }, .progress = ifelse(interactive(), "time", "none"))
+  }, .progress = "none")
 
 nh_abs = compact(nh_abs)
 ```
-
 
 First, I look at what fraction of abstracts mention "natural history" in each
 of the last five years at ESA.
@@ -81,11 +80,12 @@ ggplot(nhdf, aes(x=year, y=frac_nh)) +
 Over the past five years, <1% of abstracts at ESA have mentioned natural history.
 No trend is evident.
 
-I reported larger numbers for 2013 and 2014 in a [tweet] last week.
-These were incorrect because I counted them by a simple search of abstracts, which
-included the *affiliation* fields.  Many presenters at ESA work at natural history
-*museums* (see [this abstract], for instance).  The above numbers now only include
-abstracts where "natural history" was in the title or abstract text.
+I reported different numbers for 2013 and 2014 in a [tweet] last week.
+These were higher because I counted them by a simple search of the number of occurrences
+of "natural history" in the whole corpus.  This included the *affiliation* fields.
+Many presenters at ESA work at natural history *museums* (see [this abstract], for instance).
+The above numbers now only include abstracts where "natural history" was in the title or abstract text, and now I
+count abstracts, not occurrences of the phrase.
 
 [tweet]: https://twitter.com/noamross/status/492407527238160386
 [this abstract]: http://eco.confex.com/eco/2014/webprogram/Paper50396.html
@@ -94,7 +94,7 @@ What are these natural history talks about?  To examine this, I looked at
 the word frequency across all five years of abstracts, finding the most
 frequent terms besides "natural history".
 
-```{r wordcounts}
+```{r wordcountsi, fig.width=5, fig.height=8}
 library(tm)
 library(wordcloud)
 library(dplyr)
@@ -103,12 +103,7 @@ corpus_text = laply(nh_abs, function(ab) {
   abstract = stri_replace_all_regex(ab$abstract,  "natur\\w+\\s+hist\\w+", "", stri_opts_regex(case_insensitive = TRUE))
   return(paste(title, abstract, sep="\n"))
          })
-corp = Corpus(VectorSource(corpus_text)) %>%
-  tm_map(stripWhitespace) %>%
-  tm_map(tolower) %>%
-  tm_map(removeWords, stopwords("english")) %>%
-  tm_map(removeNumbers) %>%
-  tm_map(removePunctuation, preserve_intra_word_dashes=TRUE)
+detach("package:stringi", unload=TRUE)
 allcorp = Corpus(VectorSource(paste(corpus_text, collapse=" ")))  %>%
   tm_map(stripWhitespace) %>%
   tm_map(tolower) %>%
@@ -124,8 +119,10 @@ tfb = TermDocumentMatrix(allcorp2, list(bounds=list(local=c(2, Inf))))
 newTerms = stemCompletion(Terms(tfb), dict, 'shortest')
 tfb$dimnames$Terms = newTerms
 
-freq <- sort(slam::row_sums(tfa), decreasing=TRUE)
+freq <- sort(slam::row_sums(tfb), decreasing=TRUE)
+freq = freq[-which(names(freq) %in% c("backgroundquestionmethods", "resultsconclusions"))]
 words <- names(freq) 
+
 wd = data.frame(words=factor(words[1:30], levels=words[30:1]), freq=freq[1:30])
 ggplot(wd, aes(x=words, y=freq, label=words)) +
   geom_bar(stat='identity') +
@@ -140,20 +137,14 @@ ggplot(wd, aes(x=words, y=freq, label=words)) +
         panel.grid=element_blank()) +
   ylab('Number of Uses in Abstracts') + 
   ggtitle('Top 30 Terms in Natural History Abstracts')
-
-
-
-wordcloud(allcorp[[1]], scale=c(5,0.5), max.words=300, random.order=FALSE, rot.per=0, use.r.layout=FALSE, colors=brewer.pal(8, "Dark2"))
-
-)
 ```
 
-For comparison, here are the most common terms across all ESA abstracts:
+For comparison, here are the most common terms across all ESA abstracts this year:
 
 ![](http://dl.dropbox.com/u/3356641/blogstuff/plot1.png)
 
 Like other abstracts, talks that mention "natural history" have "species" as
-the most common term.  Interestingly, there are more relative mentions of "students", perhaps due to greater links of natural history with education.  We can see
+the most common term.  Interestingly, natural history talks don't use "plant" as frequently - perhaps other terms are used in botanical contexts.  Also, there are more relative mentions of "students", perhaps due to greater links between natural history and education.  We can see
 this pattern in a listing of all the talks for 2014, where we see several talks
 about aducation, though there are many fascinating basic science talks, as well:
 
@@ -169,6 +160,7 @@ names(talktable) = c("Presenter", "Title/Link")
 pandoc.table(talktable, split.cells=Inf, split.tables=Inf, style="rmarkdown", justify="left")
 ```
 
-I note the third talk in this list is an [ignite talk] announcing the new
-ESA natural history section.  Perhaps we'll see the effect of this section
-next year's program!
+I note the third talk in this list is an [ignite
+talk](http://eco.confex.com/eco/2014/webprogram/Paper45934.html)
+announcing the new ESA natural history section. Perhaps we'll see the
+effect of this section in next year's program!
