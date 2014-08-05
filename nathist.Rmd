@@ -1,0 +1,174 @@
+% ESA 2014: Don't Know Much About History...
+% Noam Ross
+% 14-08-01 14:32:38
+
+`r opts_chunk$set(cache=TRUE, warning=FALSE, message=FALSE)`
+
+After my [last post](http://www.noamross.net/blog/2014/7/24/esacorpuscompare.html) text-mining the [ESA Annual Meeting](http://esa.org/am/) abstract, [Nash Turley](http://www.nashturley.org/) [was interested](https://twitter.com/NashTurley/status/495272858038595587) in the presence of the term "natural history" in ESA abstracts. I decided to collect a little more data by including programs back to 2010, giving a five-year data set.  Thankfully the program back to 2010 remains in mostly the same format, so it's easy to pull the data for these additional years.
+
+Now, not all talks that include natural history concepts  will include the term "natural history"[^1]
+in their abstracts, but
+it's frequency may be an indicator of importance.  *Variation* in use of the term
+is definitely of interest.  
+
+[^1]: Or rather, something close to "natural history".  I searched for the regular expression
+`natur\w+\s+hist`.
+
+```{r getfiles}
+library(XML)
+library(stringi)
+library(plyr)
+library(pander)
+
+#First, let's use grep in the system to narrow our terms
+paper_files = system('find eco.confex.com/eco/*/webprogram -name "Paper*.html" -print0 | xargs -0 -n3000 grep -li -E "natur\\w+\\s+hist\\w+"', intern=TRUE)
+```
+
+```{r makelist}
+nh_abs = alply(paper_files, 1, function(paper) {
+  paper_xml = htmlTreeParse(paper, useInternalNodes = TRUE, trim=TRUE)
+  fields = list(
+    datetime = xmlValue(paper_xml['//div[@class="datetime"]'][[1]]),
+    presenter = stri_trim_both(xmlValue(paper_xml['//div[@class="paperauthors"]/div[@class="presenter"]/span[@class="name"]'][[1]])),
+    affiliation = xmlValue(paper_xml['//div[@class="paperauthors"]/div[@class="presenter"]/span[@class="affiliation"]'][[1]]),
+    session = xmlValue(paper_xml['//*[@class="subtitle"]/span[@class="number"]'][[1]]),
+    url = paste0('http://', paper)
+  )
+  year = as.integer(stri_match_first_regex(fields$datetime, "\\d{4}"))
+  abstract = stri_trim_both(xmlValue(paper_xml[['//div[@class="abstract"]']]))
+  title = stri_trim_both(stri_replace_first_regex(xmlValue(paper_xml[['//*[@class="subtitle"]']]), "[A-Z]{1,4}\\s+[\\d\\-\\s]+", ""))
+  if(!stri_detect_regex(paste(fields$title, abstract), "natur\\w+\\s+hist", stri_opts_regex(case_insensitive = TRUE))) {
+    return(NULL)
+  } else {
+    return(c(fields, title=title, year=year, abstract=abstract))
+  }
+  }, .progress = ifelse(interactive(), "time", "none"))
+
+nh_abs = compact(nh_abs)
+```
+
+
+First, I look at what fraction of abstracts mention "natural history" in each
+of the last five years at ESA.
+
+```{r fraction}
+library(ggplot2)
+library(noamtools)
+library(scales)
+nh_counts = as.vector(table(laply(nh_abs, function(x) x$year)))
+
+npapers=aaply(2010:2014, 1, function(z) {
+  length(list.files(paste0("eco.confex.com/eco/", z, "/webprogram"),
+                    pattern="Paper.+\\.html"))
+  })
+names(npapers) = NULL
+nhdf = data.frame(year=2010:2014, nh_abs=nh_counts, total_abs = npapers,
+                  frac_nh = nh_counts/npapers, check.names=FALSE)
+
+ggplot(nhdf, aes(x=year, y=frac_nh)) +
+  geom_bar(stat='identity', color=NA, fill="slateblue", alpha=0.75) +
+  geom_text(mapping=aes(x=year, y=frac_nh,
+                        label = paste(nh_abs, "/", total_abs)),
+            vjust=-1, family="Lato Light") +
+  scale_y_continuous(labels = percent, limits=c(0,0.01)) +
+  ylab('Talks with "natural history" in\ntitle or abstract text') +
+  xlab("Year") +
+  theme_nr +
+  theme(text=element_text(family="Lato Light", size=14),
+        axis.title=element_text(color="black",size=18))
+```
+
+Over the past five years, <1% of abstracts at ESA have mentioned natural history.
+No trend is evident.
+
+I reported larger numbers for 2013 and 2014 in a [tweet] last week.
+These were incorrect because I counted them by a simple search of abstracts, which
+included the *affiliation* fields.  Many presenters at ESA work at natural history
+*museums* (see [this abstract], for instance).  The above numbers now only include
+abstracts where "natural history" was in the title or abstract text.
+
+[tweet]: https://twitter.com/noamross/status/492407527238160386
+[this abstract]: http://eco.confex.com/eco/2014/webprogram/Paper50396.html
+
+What are these natural history talks about?  To examine this, I looked at
+the word frequency across all five years of abstracts, finding the most
+frequent terms besides "natural history".
+
+```{r wordcounts}
+library(tm)
+library(wordcloud)
+library(dplyr)
+corpus_text = laply(nh_abs, function(ab) {
+  title = stri_replace_all_regex(ab$title,  "natur\\w+\\s+hist\\w+", "", stri_opts_regex(case_insensitive = TRUE))
+  abstract = stri_replace_all_regex(ab$abstract,  "natur\\w+\\s+hist\\w+", "", stri_opts_regex(case_insensitive = TRUE))
+  return(paste(title, abstract, sep="\n"))
+         })
+corp = Corpus(VectorSource(corpus_text)) %>%
+  tm_map(stripWhitespace) %>%
+  tm_map(tolower) %>%
+  tm_map(removeWords, stopwords("english")) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation, preserve_intra_word_dashes=TRUE)
+allcorp = Corpus(VectorSource(paste(corpus_text, collapse=" ")))  %>%
+  tm_map(stripWhitespace) %>%
+  tm_map(tolower) %>%
+  tm_map(removeWords, stopwords("english")) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation, preserve_intra_word_dashes=TRUE)
+
+allcorp2 = tm_map(allcorp, stemDocument)
+
+tfa = TermDocumentMatrix(allcorp, list(bounds=list(local=c(2, Inf))))
+dict = Terms(tfa)[!(Terms(tfa) %in% c("special", "specialist", "specialists", "ecologic"))]
+tfb = TermDocumentMatrix(allcorp2, list(bounds=list(local=c(2, Inf))))
+newTerms = stemCompletion(Terms(tfb), dict, 'shortest')
+tfb$dimnames$Terms = newTerms
+
+freq <- sort(slam::row_sums(tfa), decreasing=TRUE)
+words <- names(freq) 
+wd = data.frame(words=factor(words[1:30], levels=words[30:1]), freq=freq[1:30])
+ggplot(wd, aes(x=words, y=freq, label=words)) +
+  geom_bar(stat='identity') +
+  geom_text(hjust = 1.05, col='white') +
+  coord_flip() +
+  theme_nr +
+  theme(
+       axis.title.y=element_blank(),
+        axis.ticks.y=element_blank(),
+       axis.text.y=element_blank(),
+        axis.title.x=element_text(size=18),
+        panel.grid=element_blank()) +
+  ylab('Number of Uses in Abstracts') + 
+  ggtitle('Top 30 Terms in Natural History Abstracts')
+
+
+
+wordcloud(allcorp[[1]], scale=c(5,0.5), max.words=300, random.order=FALSE, rot.per=0, use.r.layout=FALSE, colors=brewer.pal(8, "Dark2"))
+
+)
+```
+
+For comparison, here are the most common terms across all ESA abstracts:
+
+![](http://dl.dropbox.com/u/3356641/blogstuff/plot1.png)
+
+Like other abstracts, talks that mention "natural history" have "species" as
+the most common term.  Interestingly, there are more relative mentions of "students", perhaps due to greater links of natural history with education.  We can see
+this pattern in a listing of all the talks for 2014, where we see several talks
+about aducation, though there are many fascinating basic science talks, as well:
+
+```{r talktable, results='asis'}
+library(pander)
+talktable = ldply(nh_abs, function(ab) {
+  if(ab$year != 2014) return(NULL)
+  a = data.frame(ab$presenter, paste0("[", ab$title, "](", ab$url, ")"))
+  return(a)
+  })
+talktable$.id = NULL
+names(talktable) = c("Presenter", "Title/Link")
+pandoc.table(talktable, split.cells=Inf, split.tables=Inf, style="rmarkdown", justify="left")
+```
+
+I note the third talk in this list is an [ignite talk] announcing the new
+ESA natural history section.  Perhaps we'll see the effect of this section
+next year's program!
