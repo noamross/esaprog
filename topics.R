@@ -1,14 +1,35 @@
 # Load/install necessary packages
 library(devtools)
-#install_github("ropensci/elife")
 #install_github("kshirley/LDAviz")
 #install_github("cpsievert/LDAvis")
-library(LDAviz)
+library(LDAtools)
 library(LDAvis)
 library(topicmodels)
 library(tm)
 library(Rmpfr)
+library(plyr)
+library(XML)
+library(stringi)
+library(shiny)
+#library(multicore)
+#library(doMC)
+#registerDoMC(cores=22)
 
+ppath = "eco.confex.com/eco/2014/webprogram"
+paper_files = list.files(ppath, recursive=TRUE, pattern="Paper\\d+\\.html")
+
+abs = alply(paper_files, 1, function(paper) {
+  paper_xml = htmlTreeParse(file.path(ppath, paper), useInternalNodes = TRUE, trim=TRUE)
+  ab = try(xmlValue(paper_xml[['//div[@class="abstract"]']]), silent = TRUE)
+  if(class(ab) != "try-error") {
+    ab = stringi::stri_replace_all_fixed(ab, "Background/Question/Methods", "")
+    ab = stringi::stri_replace_all_fixed(ab, "Results/Conclusions", "")
+    return(ab)
+  } else {
+    return(NULL)
+  }
+}, .progress = "time")
+abs = unlist(compact(abs))
 
 #Preprocess the text and convert to document-term matrix
 dtm.control <- list(
@@ -20,7 +41,7 @@ dtm.control <- list(
   wordLengths = c(3, Inf),
   weighting = weightTf
 )
-corp <- Corpus(VectorSource(unlist(abstracts, use.names=FALSE)))
+corp <- Corpus(VectorSource(unlist(abs, use.names=FALSE)))
 dtm <- DocumentTermMatrix(corp, control = dtm.control)
 dim(dtm)
 dtm <- removeSparseTerms(dtm, 0.99)
@@ -39,14 +60,31 @@ harmonicMean <- function(logLikelihoods, precision = 2000L) {
 burnin <- 1000
 iter <- 1000
 keep <- 50
-ks <- seq(20, 40, by = 1)
-models <- lapply(ks, function(k) LDA(dtm, k, method = "Gibbs", control = list(burnin = burnin, iter = iter, keep = keep)))
+ks <- seq(2, 250, by = 1)
+#models <- lapply(ks, function(k) LDA(dtm, k, method = "Gibbs", control = list(burnin = burnin, iter = iter, keep = keep)))
+#saveRDS(models, 'topicmodels250.RDS')
+models = readRDS('topicmodels250.RDS')
 logLiks <- lapply(models, function(L)  L@logLiks[-c(1:(burnin/keep))])
 hm <- sapply(logLiks, function(h) harmonicMean(h))
-
+k = sapply(models, function(L) sum(length(L@beta) + length(L@gamma)))
+AICs = -2*hm + 2*k
 # Find optimal model
-plot(ks, hm, type = "l")
-opt <- models[which.max(hm)][[1]]
+library(ggplot2)
+library(noamtools)
+ldaplot <- ggplot(data.frame(hm, AICs), aes(x=ks, y=-AICs)) + geom_path(lwd=1.5) + theme_nr +
+  theme(text = element_text(family='Lato'),
+        axis.title.y=element_text(vjust=1, size=16),
+        axis.title.x=element_text(vjust=-.5, size=16),
+        axis.text=element_text(size=16),
+        plot.title=element_text(size=20)) +
+  xlab('Number of Topics') +
+  ylab('Relative Parsimony of Model (negative AIC)') +
+  ggtitle(expression(atop("Latent Dirichlet Allocation Analysis of ESA Program", atop(italic("How many distinct topics in the abstracts?"), ""))))
+ldaplot
+ggsave('LDA_AIC.png', ldaplot, width=10, height=7)
+# Tried to model the no. of distinct topics in the #ESA2014 program. We talk about LOTS of different stuff.
+opt <- models[which.min(AICs)][[1]]
+top.opt = ks[which.min(AICs)]
 
 # Extract the 'guts' of the optimal model
 doc.id <- opt@wordassignments$i
@@ -64,35 +102,10 @@ topic.proportion <- as.numeric(table(topic.id)/length(topic.id))
 
 # Run the visualization locally using LDAvis
 z <- check.inputs(K=max(topic.id), W=max(token.id), phi, token.frequency, vocab, topic.proportion)
-runVis()
+json <- with(z, createJSON(K=max(topic.id), phi, token.frequency, 
+                   vocab, topic.proportion))
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-###############################################################
-############ 'Verify' topics
-###############################################################
-
-#str(max.col(dat$theta.hat)) # This is equivalent to dat$main.topic (except the latter doesn't include prior weights) shouldn't this use reodered topics?
-theta <- dat$theta.hat[, dat$topic.order]
-colnames(theta) <- paste(1:dim(theta)[2])
-maxes <- apply(theta, 1, max)
-o <- order(maxes, decreasing = TRUE)
-maxes[o][1:5] # Top 5 'most distinguished' documents (e.g., most mass on a single topic) 
-w.max <- apply(theta, 1, which.max)
-w.max[o][1:5] # The topic responsible for that mass
-
-# Check that order of abstracts and subject areas match
-stopifnot(all(names(abs) == names(areas)))
-areas[o][1:5] # Subject areas for top 5
-abs[o][1:5]
+#runShiny(phi, token.frequency, vocab, topic.proportion)
+serVis(json, out.dir="esa_lda", open.browser = FALSE)
